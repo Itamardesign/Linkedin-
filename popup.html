@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
   <head>
@@ -60,10 +59,14 @@
       }
       .status {
         font-size: 14px;
-        color: #4CAF50;
         margin-top: 8px;
         text-align: center;
-        display: none;
+      }
+      .status-success {
+        color: #4CAF50;
+      }
+      .status-error {
+        color: #F44336;
       }
       .api-link {
         font-size: 12px;
@@ -74,39 +77,6 @@
         text-decoration: underline;
       }
     </style>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const apiKeyInput = document.getElementById('apiKey');
-        const saveButton = document.getElementById('saveButton');
-        const status = document.getElementById('status');
-        
-        // Load saved API key
-        const savedApiKey = localStorage.getItem('openai_api_key');
-        if (savedApiKey) {
-          apiKeyInput.value = savedApiKey;
-        }
-        
-        saveButton.addEventListener('click', function() {
-          const apiKey = apiKeyInput.value.trim();
-          if (!apiKey) {
-            alert('Please enter an API key');
-            return;
-          }
-          
-          if (!apiKey.startsWith('sk-')) {
-            alert('Please enter a valid OpenAI API key starting with sk-');
-            return;
-          }
-
-          localStorage.setItem('openai_api_key', apiKey);
-          status.textContent = 'API key saved successfully!';
-          status.style.display = 'block';
-          setTimeout(() => {
-            status.style.display = 'none';
-          }, 3000);
-        });
-      });
-    </script>
   </head>
   <body>
     <div class="container">
@@ -125,6 +95,55 @@
           Get your API key here
         </a>
       </div>
+
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const apiKeyInput = document.getElementById('apiKey');
+          const saveButton = document.getElementById('saveButton');
+          const status = document.getElementById('status');
+          
+          // Load saved API key
+          chrome.storage.sync.get(['openaiApiKey'], function(result) {
+            if (result.openaiApiKey) {
+              apiKeyInput.value = result.openaiApiKey;
+            }
+          });
+          
+          saveButton.addEventListener('click', function() {
+            const apiKey = apiKeyInput.value.trim();
+            
+            // Validate API key
+            if (!apiKey) {
+              showStatus('Please enter an API key', false);
+              return;
+            }
+            
+            if (!apiKey.startsWith('sk-')) {
+              showStatus('Please enter a valid OpenAI API key starting with sk-', false);
+              return;
+            }
+
+            // Save API key using Chrome storage
+            chrome.storage.sync.set({openaiApiKey: apiKey}, function() {
+              showStatus('API key saved successfully!', true);
+              
+              // Also save to localStorage for backwards compatibility
+              localStorage.setItem('openai_api_key', apiKey);
+            });
+          });
+
+          function showStatus(message, isSuccess) {
+            status.textContent = message;
+            status.className = `status ${isSuccess ? 'status-success' : 'status-error'}`;
+            
+            // Clear status after 3 seconds
+            setTimeout(() => {
+              status.textContent = '';
+              status.className = 'status';
+            }, 3000);
+          }
+        });
+      </script>
     </div>
   </body>
 </html>
